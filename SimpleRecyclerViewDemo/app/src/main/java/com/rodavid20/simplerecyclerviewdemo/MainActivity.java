@@ -6,19 +6,19 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Adapter;
 import android.widget.TextView;
 
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-
-import org.jetbrains.annotations.NotNull;
+import com.rodavid20.simplerecyclerviewdemo.datamodel.UserModel;
 
 public class MainActivity extends AppCompatActivity {
+    FirestoreRecyclerAdapter<UserModel, UserViewHolder> adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,38 +28,55 @@ public class MainActivity extends AppCompatActivity {
         rvUserList.setLayoutManager(new LinearLayoutManager(this));
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        Query query = db.collection("users").orderBy("name", Query.Direction.ASCENDING);
+        Query query = db.collection("users")
+                .orderBy("name", Query.Direction.ASCENDING);
 
-        FirestoreRecyclerOptions<UserModel>
-                options = FirestoreRecyclerOptions.Builder<UserModel>()
-                .setQuery(query, UserModel.class)
-                .build();
+        FirestoreRecyclerOptions<UserModel> options =
+                new FirestoreRecyclerOptions.Builder<UserModel>()
+                        .setQuery(query, UserModel.class)
+                        .build();
 
         adapter = new FirestoreRecyclerAdapter<UserModel, UserViewHolder>(options) {
+            @Override
+            protected void onBindViewHolder(@NonNull UserViewHolder holder, int position, @NonNull UserModel model) {
+                holder.setData(model.getName(), model.getPhone());
+            }
+
             @NonNull
             @Override
             public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-                return null;
-            }
-
-            @Override
-            protected void onBindViewHolder(@NotNull UserViewHolder holder, int position, @NotNull UserModel model) {
-                holder.setData(model.getName(), model.getPhone());
+                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.user_row, parent, false);
+                return new UserViewHolder(view);
             }
         };
+        rvUserList.setAdapter(adapter);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        adapter.startListening();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        adapter.stopListening();
     }
 
     public class UserViewHolder extends RecyclerView.ViewHolder {
         private View view;
 
-        public UserViewHolder(@NotNull View itemview) {
-            super(itemview);
-            view = itemview;
+        public UserViewHolder(@NonNull View itemView) {
+            super(itemView);
+            view = itemView;
         }
 
-        public void setData(String Title, String Subtitle) {
-            TextView tvUserRowTitle = view.findViewById(R.id.tv);
-
+        public void setData(String title, String subtitle){
+            TextView tvUserRowTitle = view.findViewById(R.id.tvUserRowTitle);
+            tvUserRowTitle.setText(title);
+            TextView tvUserRowSubTitle = view.findViewById(R.id.tvUserRowSubTitle);
+            tvUserRowSubTitle.setText(subtitle);
         }
     }
 }
